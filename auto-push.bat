@@ -27,13 +27,13 @@ git diff --name-only
 echo.
 
 :: 跟踪所有修改
-echo 正在跟踪所有修改的文件...
+echo 正在跟踪所有修改的文件，请稍等...
 git add .
 echo 文件跟踪完成
 echo.
 
 :: 提交修改
-echo 正在创建提交记录...
+echo 正在创建提交记录，请稍等...
 for /f "tokens=1-3 delims=/: " %%a in ("%time%") do (
     set "formatted_time=%%a时%%b分%%c秒"
 )
@@ -44,7 +44,7 @@ if %errorlevel% equ 0 (
     echo.
     
     :: 推送至远程仓库
-    echo 正在推送到远程仓库...
+    echo 正在推送到远程仓库，请稍等...
     git push
     if %errorlevel% equ 0 (
         echo 推送完成！修改已同步到远程仓库
