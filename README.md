@@ -1,32 +1,29 @@
-# 🚀 tsinghuaelt-script
+# 🚀 tsinghuaelt-script重制版
 
 清华社英语在线自动化刷题脚本 - 一个功能完整的用户脚本，用于自动化英语学习平台的答题流程。
 
 ## 📋 脚本概述
 
-这是一个基于UserScript的自动化脚本，采用Webpack模块化架构，包含完整的用户界面和丰富的功能模块。
+这是一个基于UserScript的自动化脚本，采用Webpack模块化架构，包含完整的用户界面和丰富的功能模块。这是重制版的完成计划，以下是详细介绍。
 
 ## 🏗️ 架构设计
 
-### 第1阶段：UserScript头部 (1-25行)
-- **1-25行**: UserScript元数据声明
+### 第1阶段：UserScript头部 (1-20行) v0.0.1
+- **1-20行**: UserScript元数据声明
   - `@name` - 脚本名称
   - `@version` - 版本号
   - `@author` - 作者信息
   - `@description` - 功能描述
-  - `@match` - 匹配的URL模式
+  - `@match` - 匹配特定网站
   - `@run-at` - 执行时机
   - `@grant` - GM API权限声明
   - `@resource` - jQuery依赖声明
+  - `@connect` - 允许连接的域名
+  - `@icon` - logo图标
+  - `@updateURL` - 脚本更新URL
+  - `@downloadURL` - 脚本下载URL
 
-### 第2阶段：依赖加载 (26-50行)
-- **26-50行**: jQuery动态加载逻辑
-  - ✅ 检查jQuery是否存在
-  - ✅ 从CDN异步加载jQuery
-  - ✅ 加载完成回调函数处理
-  - ✅ 错误处理和重试机制
-
-### 第3阶段：Webpack系统初始化 (51-100行)
+### 第2阶段：Webpack系统初始化 (51-100行)
 - **51-60行**: Webpack引导代码
 - **61-80行**: 模块缓存系统实现
 - **81-100行**: `__webpack_require__` 核心函数
