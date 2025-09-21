@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         清华社英语在线-重制版
-// @namespace    http://tampermonkey.net/
+// @version      0.0.1
 // @description  本版本进行编写UserScript头部
 // @author       FmCoral
 // @match        *://www.tsinghuaelt.com/*
