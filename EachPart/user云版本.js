@@ -22,6 +22,8 @@
 // @downloadURL  https://github.com/FmCoral/tsinghuaelt
 // ==/UserScript==
 
+console.log('🚀 脚本开始加载...');
+
 (function () {
     'use strict';
 
@@ -35,11 +37,9 @@
     function init() {
         console.log('🚀 脚本开始初始化...');
 
-        // 检查关键文件中的关键函数是否存在
-        const hasMain = typeof startAuto === 'function';
-        const hasUtils = typeof input_in === 'function';
-
-
+        // 检查关键文件中的关键函数是否存在，后期要进行更改，因为main.js和utils.js的函数名未进行编写
+        const hasMain = typeof TsinghuaELTController === 'function';
+        const hasUtils = typeof window.TsinghuaELTUtils === 'object';
 
         console.log('📊 文件加载状态:');
         console.log('  main.js :', hasMain ? '✅ 已加载' : '❌ 未加载');
@@ -189,241 +189,468 @@
      * 正常运行脚本
      */
     function runScript() {
-        console.log('✅ 所有文件加载成功，脚本正常运行');
+        console.log('✅ 所有文件加载成功，脚本即将运行');
 
-        // 加载CSS样式
-        loadCSS();
+        // 创建弹窗界面（包含CSS加载）
+        createCoralPanel();
 
-        // 创建工具界面
-        createToolInterface();
-
-        // 启动主逻辑（由main.js提供）
-        if (typeof startAuto === 'function') {
-            startAuto();
-        }
+        // 主逻辑已在main.js文件中通过window.addEventListener('load')自动启动
+        // 这里不需要再次调用startAuto()
     }
 
+    // 定义typeColor函数，美化控制台输出
+    function typeColor(type) {
+        type = type || '';
+        let color = '';
+        switch (type) {
+            case 'primary': color = '#2d8cf0'; break; //蓝
+            case 'success': color = '#19be6b'; break; //绿
+            case 'warning': color = '#ff9900'; break; //黄
+            case 'error': color = '#ed4014'; break; //红
+            case 'text': color = '#000000'; break; //黑
+            default: color = '#515a6e'; break; //灰
+        }
+        return color;
+    }
+
+    console.capsule = function (title, info, type = 'primary', ...args) {
+        console.log(
+            `%c ${title} %c ${info} %c`,
+            'background:#35495E; padding: 1px; border-radius: 3px 0 0 3px; color: #fff;',
+            `background:${typeColor(type)}; padding: 1px; border-radius: 0 3px 3px 0;  color: #fff;`,
+            'background:transparent', ...args
+        );
+    };
+
     /**
-     * 加载CSS样式
+     * 创建弹窗界面
      */
-    function loadCSS() {
-        try {
-            // 直接嵌入CSS代码
-            const cssText = `
+
+    console.capsule('Coral', '创建弹窗界面');
+
+    function createCoralPanel() {
+        console.capsule('Coral', '注入窗口');
+
+        /**
+         * 加载CSS样式
+         */
+        console.log('🚀 即将加载css样式...');
+
+        loadCSS();
+        function loadCSS() {
+            try {
+                console.log('🚀 加载中...');
+                // 直接嵌入CSS代码
+                const cssText = `
 /*
- * 清华社英语在线-拆分版 CSS样式文件
+ * 清华社英语在线-自动答题 CSS样式文件
  * 版本: 1.0.1
- * 最后更新: 2024年
  * 作者: FmCoral
  * 描述: 显示样式代码
  */
 
-/* 面板容器样式 */
-.tsinghuaelt-panel {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #fff;
-    border: 2px solid #007acc;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    z-index: 10000;
-    min-width: 280px;
-    max-width: 400px;
-    font-family: 'Segoe UI', Arial, sans-serif;
+/* 主面板容器样式 - 创建浮动操作面板 */
+.coralPanel {
+    position: fixed;           /* 固定在屏幕上，不随页面滚动 */
+    top: 100px;                /* 距离顶部100像素 */
+    left: 100px;               /* 距离左侧100像素（初始位置，拖动时会更新） */
+    width: 420px;              /* 面板宽度420像素 */
+    padding: 24px;             /* 内边距24像素 */
+    border-radius: 16px;       /* 圆角16像素 */
+    background: rgba(255, 255, 255, 0.95);  /* 半透明白色背景 */
+    color: #2D3748;            /* 文字颜色 */
+    backdrop-filter: blur(20px);  /* 背景模糊效果 */
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05);  /* 双层阴影效果 */
+    border: 1px solid rgba(255, 255, 255, 0.2);  /* 半透明边框 */
+    z-index: 9999;             /* 最高层级，确保显示在最前面 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Helvetica Neue", sans-serif;  /* 现代字体栈 */
+    transition: box-shadow 0.3s ease;  /* 阴影过渡动画 */
 }
 
-/* 面板头部 */
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e9ecef;
+/* 鼠标悬停时增强阴影效果 */
+.coralPanel:hover {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.panel-header h3 {
-    margin: 0;
-    color: #007acc;
-    font-size: 18px;
-    font-weight: 600;
+/* 面板标题样式 */
+.coralPanel h1 {
+    font-size: 20px;           /* 字体大小20像素 */
+    font-weight: 700;          /* 粗体 */
+    margin: 0 0 12px;          /* 下边距12像素 */
+    text-align: center;        /* 居中对齐 */
+    cursor: grab;              /* 抓取光标，用于拖动 */
+    user-select: none;         /* 禁止文字选择 */
+    color: #2D3748;            /* 文字颜色 */
+    letter-spacing: -0.5px;    /* 字间距微调 */
 }
 
-/* 表单控件样式 */
-.form-group {
-    margin-bottom: 15px;
+/* 二级标题样式 */
+.coralPanel h2 {
+    font-size: 16px;           /* 字体大小16像素 */
+    font-weight: 600;          /* 中等粗体 */
+    color: #2D3748;            /* 文字颜色 */
+    margin: 0 0 8px;           /* 下边距8像素 */
+    display: flex;             /* 弹性布局 */
+    align-items: center;       /* 垂直居中对齐 */
+    gap: 8px;                  /* 元素间距8像素 */
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #495057;
-    font-weight: 500;
-    font-size: 14px;
+/* 二级标题前的装饰线 */
+.coralPanel h2:before {
+    content: '';               /* 伪元素内容为空 */
+    width: 4px;                /* 宽度4像素 */
+    height: 16px;              /* 高度16像素 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);  /* 渐变背景 */
+    border-radius: 2px;        /* 圆角2像素 */
 }
 
-.form-control {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-size: 14px;
-    box-sizing: border-box;
+/* 水平分割线样式 */
+.coralPanel hr {
+    border: none;              /* 移除默认边框 */
+    border-top: 1px solid rgba(226, 232, 240, 0.8);  /* 顶部边框线 */
+    margin: 12px 0;            /* 上下边距12像素 */
 }
 
-.form-control:focus {
-    outline: none;
-    border-color: #007acc;
-    box-shadow: 0 0 0 2px rgba(0,122,204,0.2);
+/* 段落容器样式 - 用于组织选项 */
+.coralPanel > p {
+    margin: 8px 0;             /* 上下边距8像素 */
+    line-height: 1.5;          /* 行高1.5倍 */
+    display: grid;             /* 网格布局 */
+    grid-template-columns: repeat(3, minmax(0, 1fr));  /* 3列等宽网格 */
+    gap: 8px 12px;             /* 行列间距 */
+    align-items: center;       /* 垂直居中对齐 */
 }
 
-/* 按钮组样式 */
-.btn-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
+/* 复选框组容器样式 */
+.coralPanel > p > .checkbox-group {
+    margin: 0;                 /* 移除外边距 */
 }
 
-.btn {
-    flex: 1;
-    padding: 10px 15px;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
+/* 复选框组样式 */
+.coralPanel .checkbox-group {
+    display: inline-flex;      /* 内联弹性布局 */
+    align-items: center;       /* 垂直居中对齐 */
+    gap: 8px;                  /* 元素间距8像素 */
+    padding: 6px 0;            /* 上下内边距6像素 */
+    transition: background 0.2s;  /* 背景色过渡动画 */
+    border-radius: 8px;        /* 圆角8像素 */
 }
 
-.btn-primary {
-    background: #007acc;
-    color: white;
+/* 复选框组悬停效果 */
+.coralPanel .checkbox-group:hover {
+    background: rgba(237, 242, 247, 0.5);  /* 浅灰色背景 */
 }
 
-.btn-primary:hover {
-    background: #005a9e;
-    transform: translateY(-1px);
+/* 复选框输入框样式 */
+.coralPanel input[type="checkbox"] {
+    width: 16px;               /* 宽度16像素 */
+    height: 16px;              /* 高度16像素 */
+    border-radius: 4px;        /* 圆角4像素 */
+    border: 2px solid #CBD5E0;  /* 边框颜色 */
+    background: white;          /* 白色背景 */
+    cursor: pointer;           /* 指针光标 */
+    transition: all 0.2s;      /* 所有属性过渡动画 */
+    accent-color: #667eea;     /* 选中状态颜色 */
 }
 
-.btn-secondary {
-    background: #6c757d;
-    color: white;
+/* 复选框选中状态样式 */
+.coralPanel input[type="checkbox"]:checked {
+    background: #667eea;       /* 选中背景色 */
+    border-color: #667eea;     /* 选中边框色 */
 }
 
-.btn-secondary:hover {
-    background: #545b62;
+/* 复选框聚焦状态样式 */
+.coralPanel input[type="checkbox"]:focus {
+    outline: none;             /* 移除默认轮廓 */
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);  /* 聚焦阴影效果 */
 }
 
-.btn-success {
-    background: #28a745;
-    color: white;
+/* 标签文字样式 */
+.coralPanel label {
+    font-size: 14px;           /* 字体大小14像素 */
+    color: #4A5568;            /* 文字颜色 */
+    cursor: pointer;           /* 指针光标 */
+    font-weight: 500;          /* 中等粗体 */
+    transition: color 0.2s;    /* 颜色过渡动画 */
 }
 
-.btn-success:hover {
-    background: #1e7e34;
+/* 标签悬停效果 */
+.coralPanel label:hover {
+    color: #2D3748;            /* 悬停时文字颜色 */
 }
 
-/* 状态显示样式 */
-.status-display {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 6px;
-    padding: 10px;
-    margin-top: 15px;
-    font-size: 13px;
+/* 文本输入框样式 */
+.coralPanel input[type="text"] {
+    width: 80px;               /* 宽度80像素 */
+    padding: 8px 12px;         /* 内边距 */
+    border: 2px solid #E2E8F0;  /* 边框样式 */
+    border-radius: 8px;       /* 圆角8像素 */
+    font-size: 14px;           /* 字体大小14像素 */
+    background: white;          /* 白色背景 */
+    transition: all 0.2s;      /* 所有属性过渡动画 */
 }
 
-.status-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
+/* 文本输入框聚焦状态 */
+.coralPanel input[type="text"]:focus {
+    outline: none;             /* 移除默认轮廓 */
+    border-color: #667eea;     /* 聚焦边框颜色 */
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);  /* 聚焦阴影效果 */
 }
 
-.status-item:last-child {
-    margin-bottom: 0;
+/* 按钮基础样式 */
+.coralPanel button {
+    padding: 10px 16px;        /* 内边距 */
+    font-size: 14px;           /* 字体大小14像素 */
+    font-weight: 600;          /* 粗体 */
+    border: none;              /* 移除边框 */
+    border-radius: 10px;       /* 圆角10像素 */
+    cursor: pointer;           /* 指针光标 */
+    transition: all 0.3s ease;  /* 所有属性过渡动画 */
+    display: flex;             /* 弹性布局 */
+    align-items: center;       /* 垂直居中对齐 */
+    justify-content: center;   /* 水平居中对齐 */
+    gap: 6px;                  /* 元素间距6像素 */
 }
 
-.status-label {
-    color: #6c757d;
+/* 按钮悬停效果（非禁用状态） */
+.coralPanel button:not(:disabled):hover {
+    transform: translateY(-1px);  /* 向上移动1像素 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);  /* 悬停阴影效果 */
 }
 
-.status-value {
-    font-weight: 500;
+/* 保存和重置按钮样式 */
+.coralPanel #yun_save,
+.coralPanel #yun_reset {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);  /* 渐变背景 */
+    color: white;              /* 白色文字 */
+    width: auto;               /* 自动宽度 */
+    flex: 1;                   /* 弹性填充 */
+    margin: 8px 4px;           /* 外边距 */
 }
 
-.status-success {
-    color: #28a745;
+/* 保存和重置按钮悬停效果 */
+.coralPanel #yun_save:hover,
+.coralPanel #yun_reset:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);  /* 悬停渐变背景 */
 }
 
-.status-warning {
-    color: #ffc107;
+/* 完成单个任务按钮样式 */
+.coralPanel #yun_doone {
+    background: #48BB78;        /* 绿色背景 */
+    color: white;              /* 白色文字 */
+    flex: 1;                   /* 弹性填充 */
+    margin: 8px 4px;           /* 外边距 */
 }
 
-.status-error {
-    color: #dc3545;
+/* 完成单个任务按钮悬停效果 */
+.coralPanel #yun_doone:hover {
+    background: #38A169;        /* 悬停绿色背景 */
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .tsinghuaelt-panel {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-    }
-    
-    .btn-group {
-        flex-direction: column;
-    }
+/* 开始按钮样式 */
+.coralPanel #yun_start {
+    background: linear-gradient(135deg, #F56565 0%, #E53E3E 100%);  /* 红色渐变背景 */
+    color: white;              /* 白色文字 */
+    flex: 1;                   /* 弹性填充 */
+    margin: 8px 4px;           /* 外边距 */
 }
 
-/* 工具界面样式 */
-.tsinghuaelt-tool {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #fff;
-    border: 2px solid #007acc;
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    z-index: 10000;
-    min-width: 200px;
+/* 开始按钮悬停效果 */
+.coralPanel #yun_start:hover {
+    background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);  /* 悬停红色渐变背景 */
 }
 
-.tsinghuaelt-tool h3 {
-    margin: 0 0 10px 0;
-    color: #007acc;
-    font-size: 16px;
+/* 关闭按钮样式 */
+.coralPanel .close {
+    position: absolute;        /* 绝对定位 */
+    top: 16px;                 /* 距离顶部16像素 */
+    right: 16px;               /* 距离右侧16像素 */
+    width: 24px;               /* 宽度24像素 */
+    height: 24px;              /* 高度24像素 */
+    display: flex;             /* 弹性布局 */
+    align-items: center;       /* 垂直居中对齐 */
+    justify-content: center;   /* 水平居中对齐 */
+    border-radius: 50%;        /* 圆形 */
+    cursor: pointer;           /* 指针光标 */
+    background: rgba(226, 232, 240, 0.8);  /* 半透明背景 */
+    transition: all 0.2s;      /* 所有属性过渡动画 */
+    color: #718096;            /* 文字颜色 */
 }
-`;
 
-            GM_addStyle(cssText);
-            console.log('✅ CSS样式加载成功');
-        } catch (error) {
-            console.warn('❌ CSS加载失败:', error);
+/* 关闭按钮悬停效果 */
+.coralPanel .close:hover {
+    background: #E53E3E;        /* 红色背景 */
+    color: white;              /* 白色文字 */
+    transform: rotate(360deg);  /* 旋转360度 */
+    transform-origin: center;  /* 旋转中心为元素中心 */
+}
+
+/* 关闭按钮的X符号 */
+.coralPanel .close:before {
+    content: '×';              /* 乘号字符 */
+    font-size: 18px;           /* 字体大小18像素 */
+    font-weight: bold;         /* 粗体 */
+    line-height: 1;            /* 行高1倍 */
+    display: flex;             /* 弹性布局 */
+    align-items: center;       /* 垂直居中对齐 */
+    justify-content: center;   /* 水平居中对齐 */
+    width: 100%;               /* 宽度100% */
+    height: 100%;              /* 高度100% */
+    position: absolute;        /* 绝对定位 */
+    top: 0;                    /* 顶部对齐 */
+    left: 0;                   /* 左侧对齐 */
+    transform: translate(0, 0); /* 重置位置 */
+    font-family: Arial, sans-serif; /* 使用标准字体 */
+}
+
+/* 禁用状态按钮样式 */
+.coralPanel button.is-disabled,
+.coralPanel button:disabled {
+    opacity: 0.6;              /* 透明度60% */
+    cursor: not-allowed;       /* 禁止光标 */
+    transform: none !important;  /* 移除变换效果 */
+    box-shadow: none !important;  /* 移除阴影效果 */
+}
+
+/* 状态显示区域样式 */
+.coralPanel #yun_status {
+    font-size: 14px;           /* 字体大小14像素 */
+    font-weight: 600;          /* 粗体 */
+    text-align: center;        /* 居中对齐 */
+    margin: 16px 0;            /* 上下边距16像素 */
+    padding: 12px;             /* 内边距12像素 */
+    border-radius: 12px;       /* 圆角12像素 */
+    background: linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%);  /* 渐变背景 */
+    border: 1px solid #E2E8F0;  /* 边框样式 */
+    color: #4A5568;            /* 文字颜色 */
+}`;
+
+                GM_addStyle(cssText);
+                console.log('✅ CSS样式加载成功');
+            } catch (error) {
+                console.warn('❌ CSS加载失败:', error);
+            }
         }
+
+        $(document.body).after(`
+    <div class="coralPanel">
+        <div class="close"></div>
+        <h1 class="grabber">清华社 - 自动答题</h1>
+        <hr>
+        <h2>自动完成题型</h2>
+       <p>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_tiankong">
+                <label for="auto_tiankong">填空</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_luyin">
+                <label for="auto_luyin">无评分录音</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_lytk">
+                <label for="auto_lytk">有评分录音</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_judge">
+                <label for="auto_judge">判断题</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_danxuan">
+                <label for="auto_danxuan">单项选择</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_duoxuan">
+                <label for="auto_duoxuan">多项选择</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_dropchoose">
+                <label for="auto_dropchoose">文本填空</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_drag">
+                <label for="auto_drag">拖块</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_video">
+                <label for="auto_video">视频</label>
+            </span>
+        </p>
+        <hr>
+
+        
+        <h2>设置选项</h2>
+        <p>
+            <span class="checkbox-group">
+                <input type="checkbox" id="set_tryerr">
+                <label for="set_tryerr">自动试错</label>
+            </span>
+              <span class="checkbox-group">
+                <input type="checkbox" id="set_auto">
+                <label for="set_auto">自动重做</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="set_manu">
+                <label for="set_manu">未知题型停止</label>
+            </span>
+          
+        </p>
+
+        <p style="display: flex; align-items: center; gap: 12px; margin: 12px 0;">
+            <span style="font-size: 14px; color: #4A5568; font-weight: 500;">每题耗时(秒)</span>
+            <input type="text" id="set_delay" value="10" style="width: 100px;">
+        </p>
+         <p style="display: flex; gap: 8px; margin: 16px 0;">
+            <button id="yun_save">💾 保存设置</button>
+            <button id="yun_reset">🔄 恢复默认</button>
+        </p>
+        <hr>
+        <h2 id="yun_status">状态栏</h2>
+        <p style="display: flex; gap: 8px; margin: 16px 0;">
+            <button id="yun_doone">🎯 只做一题</button>
+            <button id="yun_start">🚀 开始答题</button>
+        </p>
+    </div>
+`);
+
+        // 窗口拖动 - 实时拖动
+        let draging = false, startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+
+        $(document).mousemove((e) => {
+            if (draging) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                $('.coralPanel').css({
+                    left: initialLeft + deltaX + 'px',
+                    top: initialTop + deltaY + 'px',
+                    right: 'auto',
+                    transform: 'none'
+                });
+            }
+        });
+
+        $('.grabber').mousedown((e) => {
+            draging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const panel = $('.coralPanel');
+            initialLeft = parseInt(panel.css('left')) || 0;
+            initialTop = parseInt(panel.css('top')) || 0;
+            e.preventDefault();
+        });
+        $(document).mouseup(() => { draging = false; });
+
+        // 关闭按钮点击事件
+        $('.coralPanel .close').click(function() {
+            $('.coralPanel').fadeOut(300, function() {
+                $(this).remove();
+                console.log('✅ 弹窗已关闭');
+            });
+        });
+
+        console.log('🚀 窗口拖动功能已加载');
+        console.log('✅ 关闭按钮监听器已添加');
     }
 
 
-
-    /**
-     * 创建工具界面
-     */
-    function createToolInterface() {
-        const toolDiv = document.createElement('div');
-        toolDiv.id = 'tsinghuaelt-tool';
-        toolDiv.className = 'tsinghuaelt-tool';
-
-        toolDiv.innerHTML = `
-            <h3>清华社英语工具</h3>
-            <div style="color: #28a745; font-weight: bold;">✅ 所有文件加载成功</div>
-            <div style="color: #6c757d; font-size: 12px; margin-top: 10px;">脚本正常运行中...</div>
-        `;
-
-        document.body.appendChild(toolDiv);
-        console.log('✅ 工具界面创建完成');
-    }
 })();
