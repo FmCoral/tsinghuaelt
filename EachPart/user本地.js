@@ -13,9 +13,9 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getResourceText
 // @grant        GM_addElement
-// @require      file:///E:/桌面/tsinghuaelt/拆分/main.js
-// @require      file:///E:/桌面/tsinghuaelt/拆分/utils.js
-// @resource     panelCSS file:///E:/桌面/tsinghuaelt/拆分/style.css
+// @require      file:///E:/桌面/tsinghuaelt/EachPart/main.js
+// @require      file:///E:/桌面/tsinghuaelt/EachPart/utils.js
+// @resource     panelCSS file:///E:/桌面/tsinghuaelt/EachPart/style.css
 // @resource     jquery https://code.jquery.com/jquery-3.5.1.min.js
 // @connect      *
 // @updateURL    https://github.com/FmCoral/tsinghuaelt

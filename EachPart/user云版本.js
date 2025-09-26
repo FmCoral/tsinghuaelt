@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         清华社英语在线-本地版
+// @name         清华社英语在线-云版本
 // @version      1.0.5
 // @description  本次将尝试将脚本分化为四个部分，便于管理，已添加缓存处理机制
 // @author       FmCoral
@@ -13,9 +13,9 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getResourceText
 // @grant        GM_addElement
-// @require      file:///E:/桌面/tsinghuaelt/拆分/main.js
-// @require      file:///E:/桌面/tsinghuaelt/拆分/utils.js
-// @resource     panelCSS file:///E:/桌面/tsinghuaelt/拆分/style.css
+// @require      https://github.com/FmCoral/tsinghuaelt/raw/main/EachPart/main.js
+// @require      https://github.com/FmCoral/tsinghuaelt/raw/main/EachPart/utils.js
+// @resource     panelCSS https://github.com/FmCoral/tsinghuaelt/raw/main/EachPart/style.css
 // @resource     jquery https://code.jquery.com/jquery-3.5.1.min.js
 // @connect      *
 // @updateURL    https://github.com/FmCoral/tsinghuaelt
