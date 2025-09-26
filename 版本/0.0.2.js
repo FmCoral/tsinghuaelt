@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         清华社英语在线-重制版
 // @version      0.0.2
-// @description  本版本进行编写UserScript头部
+// @description  本版本进行jQuery动态加载
 // @author       FmCoral
 // @match        *://www.tsinghuaelt.com/*
 // @run-at       document-start
