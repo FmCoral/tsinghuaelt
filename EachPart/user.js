@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         清华社英语在线-本地版
-// @version      1.0.1
-// @description  本版本修复bug，下一个版本将集成css文件
+// @version      1.0.2
+// @description  本版本将外部缓存文件仅设置成一个
 // @author       FmCoral
 // @match        *://www.tsinghuaelt.com/*
 // @run-at       document-start
@@ -13,8 +13,8 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getResourceText
 // @grant        GM_addElement
-// @require      file:///E:/桌面/tsinghuaelt/EachPart/main.js
-// @require      file:///E:/桌面/tsinghuaelt/EachPart/utils.js
+// @resource     main_script file:///E:/桌面/tsinghuaelt/EachPart/main.js
+// @resource     utils_script file:///E:/桌面/tsinghuaelt/EachPart/utils.js
 // @resource     jquery https://code.jquery.com/jquery-3.5.1.min.js
 // @connect      *
 // @updateURL    https://github.com/FmCoral/tsinghuaelt
@@ -23,9 +23,174 @@
 
 
 
+// 定义typeColor函数，美化控制台输出
+function typeColor(type) {
+    type = type || '';
+    let color = '';
+    switch (type) {
+        case 'primary': color = '#2d8cf0'; break; //蓝
+        case 'success': color = '#19be6b'; break; //绿
+        case 'warning': color = '#ff9900'; break; //黄
+        case 'error': color = '#ed4014'; break; //红
+        case 'text': color = '#000000'; break; //黑
+        default: color = '#515a6e'; break; //灰
+    }
+    return color;
+}
+
+console.capsule = function (title, info, type = 'primary', ...args) {
+    console.log(
+        `%c ${title} %c ${info} %c`,
+        'background:#35495E; padding: 1px; border-radius: 3px 0 0 3px; color: #fff;',
+        `background:${typeColor(type)}; padding: 1px; border-radius: 0 3px 3px 0;  color: #fff;`,
+        'background:transparent', ...args
+    );
+};
+
+// 直接从CDN加载jQuery
+console.log('[coral] 开始加载 jQuery 库...');
+
+const script = document.createElement('script');
+script.src = 'https://code.jquery.com/jquery-3.5.1.min.js';
+script.onload = function () {
+    console.capsule('coral ', 'jQuery加载成功');
+    // 确保jQuery完全加载后再加载其他脚本到缓存
+    if (typeof jQuery !== 'undefined') {
+        loadScriptsToCache();
+    } else {
+        console.error('[coral] jQuery加载失败，无法继续执行');
+    }
+};
+
+// 添加错误处理
+script.onerror = function () {
+    console.error('[coral] jQuery库加载失败');
+};
+
+document.head.appendChild(script);
+
 console.log('🚀 脚本开始加载...');
 
-(function () {
+// 状态栏管理功能
+const StatusBar = {
+    messages: [],
+    maxMessages: 3,
+    
+    addMessage(message) {
+        this.messages.push({text: message, timestamp: new Date().toLocaleTimeString()});
+        if (this.messages.length > this.maxMessages) this.messages.shift();
+        this.updateDisplay();
+    },
+    
+    updateDisplay() {
+        // 使用主窗口中的状态栏元素
+        const el = document.getElementById('coral_status');
+        if (!el) return;
+        
+        // 找到状态栏标题后面的容器（通常是下一个兄弟元素）
+        let statusContainer = el.nextElementSibling;
+        if (!statusContainer || !statusContainer.classList.contains('status-container')) {
+            // 如果不存在状态容器，创建一个
+            statusContainer = document.createElement('div');
+            statusContainer.className = 'status-container';
+            statusContainer.style.cssText = 'margin-top:10px;padding:10px;background:#f8f9fa;border-radius:8px;font-size:12px;line-height:1.4;max-height:120px;overflow-y:auto;';
+            el.parentNode.insertBefore(statusContainer, el.nextSibling);
+        }
+        
+        let html = '<div style="text-align:left;">';
+        if (this.messages.length === 0) {
+            html += '<div style="color:#666;font-style:italic;">等待状态更新...</div>';
+        } else {
+            this.messages.forEach((msg, i) => {
+                const isLatest = i === this.messages.length - 1;
+                html += `<div style="margin:4px 0;color:${isLatest ? '#2d8cf0' : '#666'};font-weight:${isLatest ? '600' : '400'};">
+                    <span style="color:#999;font-size:10px;">[${msg.timestamp}]</span> ${msg.text}
+                </div>`;
+            });
+        }
+        statusContainer.innerHTML = html + '</div>';
+    },
+    
+    clear() {
+        this.messages = [];
+        this.updateDisplay();
+    }
+};
+
+// 状态栏输出函数
+window.logToStatusBar = (...args) => {
+    StatusBar.addMessage(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+};
+
+// 初始化状态栏显示
+function initStatusBar() {
+    // 等待主窗口创建后再初始化状态栏
+    const checkInterval = setInterval(() => {
+        const coralStatus = document.getElementById('coral_status');
+        if (coralStatus) {
+            clearInterval(checkInterval);
+            
+            // 确保状态栏容器存在
+            StatusBar.updateDisplay();
+            
+            console.log('✅ 状态栏已集成到主窗口');
+            window.logToStatusBar('等待用户操作···');
+            console.log('状态栏已初始化');
+        }
+    }, 100);
+    
+    // 10秒后停止检查，避免无限循环
+    setTimeout(() => clearInterval(checkInterval), 10000);
+}
+
+// 页面加载后初始化状态栏
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initStatusBar);
+} else {
+    initStatusBar();
+}
+
+/**
+ * 加载脚本到缓存但不执行
+ */
+function loadScriptsToCache() {
+    console.log('📥 开始加载脚本到缓存...');
+    
+    // 初始化缓存对象
+    window.cachedScripts = window.cachedScripts || {};
+    
+    // 使用GM_getResourceText获取资源内容到缓存
+    try {
+        // 加载main.js到缓存
+        const mainScript = GM_getResourceText('main_script');
+        if (mainScript) {
+            window.cachedScripts['main.js'] = mainScript;
+            console.log('✅ main.js已加载到缓存，大小:', mainScript.length, '字符');
+        }
+        
+        // 加载utils.js到缓存
+        const utilsScript = GM_getResourceText('utils_script');
+        if (utilsScript) {
+            window.cachedScripts['utils.js'] = utilsScript;
+            console.log('✅ utils.js已加载到缓存，大小:', utilsScript.length, '字符');
+        }
+        
+        console.log('📊 缓存状态:', {
+            'main.js': window.cachedScripts['main.js'] ? '✅ 已缓存' : '❌ 未缓存',
+            'utils.js': window.cachedScripts['utils.js'] ? '✅ 已缓存' : '❌ 未缓存'
+        });
+        
+        // 所有脚本加载完成后执行主逻辑
+        executeWebpack();
+        
+    } catch (error) {
+        console.error('❌ 脚本加载到缓存失败:', error);
+        // 即使缓存失败也继续执行，但显示错误
+        executeWebpack();
+    }
+}
+
+function executeWebpack() {
     'use strict';
 
     // 等待页面加载完成
@@ -38,29 +203,25 @@ console.log('🚀 脚本开始加载...');
     function init() {
         console.log('🚀 脚本开始初始化...');
 
-        // 检查关键文件中的关键函数是否存在，后期要进行更改，因为main.js和utils.js的函数名未进行编写
-        const hasMain = typeof TsinghuaELTController === 'function';
-        const hasUtils = typeof window.TsinghuaELTUtils === 'object';
+        // 检查缓存状态 - 准确检测是否已加载到缓存
+        const hasMainCached = window.cachedScripts && window.cachedScripts['main.js'] && window.cachedScripts['main.js'].length > 0;
+        const hasUtilsCached = window.cachedScripts && window.cachedScripts['utils.js'] && window.cachedScripts['utils.js'].length > 0;
 
-        console.log('📊 文件加载状态:');
-        console.log('  main.js :', hasMain ? '✅ 已加载' : '❌ 未加载');
-        console.log('  utils.js :', hasUtils ? '✅ 已加载' : '❌ 未加载');
-
-        if (!hasMain || !hasUtils) {
-            // 有文件未加载，显示错误弹窗
-            showErrorPopup(hasMain, hasUtils);
+        if (!hasMainCached || !hasUtilsCached) {
+            // 有文件未加载到缓存，显示错误弹窗
+            showErrorPopup(hasMainCached, hasUtilsCached);
             return; // 停止执行
         }
 
-        // 所有文件都加载成功，正常运行
+        // 所有文件都已缓存，正常运行
         runScript();
     }
 
     /**
      * 显示错误弹窗
      */
-    function showErrorPopup(hasMain, hasUtils) {
-        console.log('❌ 有文件加载失败，显示错误弹窗');
+    function showErrorPopup(hasMainCached, hasUtilsCached) {
+        console.log('❌ 有文件未加载到缓存，显示错误弹窗');
 
         // 创建弹窗容器
         const popup = document.createElement('div');
@@ -93,40 +254,40 @@ console.log('🚀 脚本开始加载...');
 
         // 生成错误信息
         const failedFiles = [];
-        if (!hasMain) failedFiles.push('main.js');
-        if (!hasUtils) failedFiles.push('utils.js');
+        if (!hasMainCached) failedFiles.push('main.js');
+        if (!hasUtilsCached) failedFiles.push('utils.js');
 
         const errorMessage = failedFiles.length > 0
-            ? `以下文件加载失败：${failedFiles.join(', ')}`
+            ? `以下文件未加载到缓存：${failedFiles.join(', ')}`
             : '未知错误';
 
         popupContent.innerHTML = `
             <h2 style="color: #dc3545; margin: 0 0 20px 0; font-size: 24px;">
-                ❌ 脚本加载失败
+                ❌ 缓存加载失败
             </h2>
             
             <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 20px 0;">
                 <h3 style="color: #495057; margin: 0 0 15px 0; font-size: 18px;">
-                    📁 文件加载状态
+                    📁 缓存状态检测
                 </h3>
                 
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 8px 0; background: white; border-radius: 6px; border-left: 4px solid ${hasMain ? '#28a745' : '#dc3545'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 8px 0; background: white; border-radius: 6px; border-left: 4px solid ${hasMainCached ? '#28a745' : '#dc3545'};">
                     <div style="text-align: left;">
                         <strong>main.js</strong><br>
                         <small style="color: #6c757d;">主逻辑文件</small>
                     </div>
-                    <div style="color: ${hasMain ? '#28a745' : '#dc3545'}; font-weight: bold;">
-                        ${hasMain ? '✅ 已加载' : '❌ 加载失败'}
+                    <div style="color: ${hasMainCached ? '#28a745' : '#dc3545'}; font-weight: bold;">
+                        ${hasMainCached ? '✅ 已缓存' : '❌ 未缓存'}
                     </div>
                 </div>
                 
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 8px 0; background: white; border-radius: 6px; border-left: 4px solid ${hasUtils ? '#28a745' : '#dc3545'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 8px 0; background: white; border-radius: 6px; border-left: 4px solid ${hasUtilsCached ? '#28a745' : '#dc3545'};">
                     <div style="text-align: left;">
                         <strong>utils.js</strong><br>
                         <small style="color: #6c757d;">工具函数库</small>
                     </div>
-                    <div style="color: ${hasUtils ? '#28a745' : '#dc3545'}; font-weight: bold;">
-                        ${hasUtils ? '✅ 已加载' : '❌ 加载失败'}
+                    <div style="color: ${hasUtilsCached ? '#28a745' : '#dc3545'}; font-weight: bold;">
+                        ${hasUtilsCached ? '✅ 已缓存' : '❌ 未缓存'}
                     </div>
                 </div>
             </div>
@@ -192,42 +353,24 @@ console.log('🚀 脚本开始加载...');
     function runScript() {
         console.log('✅ 所有文件加载成功，脚本即将运行');
 
+        // 将重要信息显示到状态栏
+        if (window.logToStatusBar) {
+            window.logToStatusBar('✅ 所有文件加载成功，脚本即将运行');
+        }
+
         // 创建弹窗界面（包含CSS加载）
         createCoralPanel();
 
-        // 主逻辑已在main.js文件中通过window.addEventListener('load')自动启动
-        // 这里不需要再次调用startAuto()
+
     }
 
-    // 定义typeColor函数，美化控制台输出
-    function typeColor(type) {
-        type = type || '';
-        let color = '';
-        switch (type) {
-            case 'primary': color = '#2d8cf0'; break; //蓝
-            case 'success': color = '#19be6b'; break; //绿
-            case 'warning': color = '#ff9900'; break; //黄
-            case 'error': color = '#ed4014'; break; //红
-            case 'text': color = '#000000'; break; //黑
-            default: color = '#515a6e'; break; //灰
-        }
-        return color;
-    }
 
-    console.capsule = function (title, info, type = 'primary', ...args) {
-        console.log(
-            `%c ${title} %c ${info} %c`,
-            'background:#35495E; padding: 1px; border-radius: 3px 0 0 3px; color: #fff;',
-            `background:${typeColor(type)}; padding: 1px; border-radius: 0 3px 3px 0;  color: #fff;`,
-            'background:transparent', ...args
-        );
-    };
 
     /**
      * 创建弹窗界面
      */
 
-    console.capsule('Coral', '创建弹窗界面');
+    console.capsule('Coral', '创建弹窗中');
 
     function createCoralPanel() {
         console.capsule('Coral', '注入窗口');
@@ -255,7 +398,7 @@ console.log('🚀 脚本开始加载...');
     position: fixed;           /* 固定在屏幕上，不随页面滚动 */
     top: 100px;                /* 距离顶部100像素 */
     left: 100px;               /* 距离左侧100像素（初始位置，拖动时会更新） */
-    width: 420px;              /* 面板宽度420像素 */
+    width: 420px;              /* 面板宽度400像素 */
     padding: 24px;             /* 内边距24像素 */
     border-radius: 16px;       /* 圆角16像素 */
     background: rgba(255, 255, 255, 0.95);  /* 半透明白色背景 */
@@ -420,8 +563,8 @@ console.log('🚀 脚本开始加载...');
 }
 
 /* 保存和重置按钮样式 */
-.coralPanel #yun_save,
-.coralPanel #yun_reset {
+.coralPanel #coral_save,
+.coralPanel #coral_reset {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);  /* 渐变背景 */
     color: white;              /* 白色文字 */
     width: auto;               /* 自动宽度 */
@@ -430,13 +573,13 @@ console.log('🚀 脚本开始加载...');
 }
 
 /* 保存和重置按钮悬停效果 */
-.coralPanel #yun_save:hover,
-.coralPanel #yun_reset:hover {
+.coralPanel #coral_save:hover,
+.coralPanel #coral_reset:hover {
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);  /* 悬停渐变背景 */
 }
 
 /* 完成单个任务按钮样式 */
-.coralPanel #yun_doone {
+.coralPanel #coral_doone {
     background: #48BB78;        /* 绿色背景 */
     color: white;              /* 白色文字 */
     flex: 1;                   /* 弹性填充 */
@@ -444,12 +587,12 @@ console.log('🚀 脚本开始加载...');
 }
 
 /* 完成单个任务按钮悬停效果 */
-.coralPanel #yun_doone:hover {
+.coralPanel #coral_doone:hover {
     background: #38A169;        /* 悬停绿色背景 */
 }
 
 /* 开始按钮样式 */
-.coralPanel #yun_start {
+.coralPanel #coral_start {
     background: linear-gradient(135deg, #F56565 0%, #E53E3E 100%);  /* 红色渐变背景 */
     color: white;              /* 白色文字 */
     flex: 1;                   /* 弹性填充 */
@@ -457,7 +600,7 @@ console.log('🚀 脚本开始加载...');
 }
 
 /* 开始按钮悬停效果 */
-.coralPanel #yun_start:hover {
+.coralPanel #coral_start:hover {
     background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);  /* 悬停红色渐变背景 */
 }
 
@@ -514,7 +657,7 @@ console.log('🚀 脚本开始加载...');
 }
 
 /* 状态显示区域样式 */
-.coralPanel #yun_status {
+.coralPanel #coral_status {
     font-size: 14px;           /* 字体大小14像素 */
     font-weight: 600;          /* 粗体 */
     text-align: center;        /* 居中对齐 */
@@ -527,7 +670,12 @@ console.log('🚀 脚本开始加载...');
 }`;
 
                 GM_addStyle(cssText);
-                console.log('✅ CSS样式加载成功');
+                console.log('✅ CSS已加载');
+
+                // 将重要信息显示到状态栏
+                if (window.logToStatusBar) {
+                    window.logToStatusBar('✅ CSS已加载');
+                }
             } catch (error) {
                 console.warn('❌ CSS加载失败:', error);
             }
@@ -542,19 +690,16 @@ console.log('🚀 脚本开始加载...');
        <p>
             <span class="checkbox-group">
                 <input type="checkbox" id="auto_tiankong">
-                <label for="auto_tiankong">填空</label>
+                <label for="auto_tiankong">填空题</label>
             </span>
-            <span class="checkbox-group">
-                <input type="checkbox" id="auto_luyin">
-                <label for="auto_luyin">无评分录音</label>
-            </span>
-            <span class="checkbox-group">
-                <input type="checkbox" id="auto_lytk">
-                <label for="auto_lytk">有评分录音</label>
-            </span>
+            
             <span class="checkbox-group">
                 <input type="checkbox" id="auto_judge">
                 <label for="auto_judge">判断题</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_drag">
+                <label for="auto_drag">拖块题</label>
             </span>
             <span class="checkbox-group">
                 <input type="checkbox" id="auto_danxuan">
@@ -568,13 +713,18 @@ console.log('🚀 脚本开始加载...');
                 <input type="checkbox" id="auto_dropchoose">
                 <label for="auto_dropchoose">文本填空</label>
             </span>
-            <span class="checkbox-group">
-                <input type="checkbox" id="auto_drag">
-                <label for="auto_drag">拖块</label>
-            </span>
+            
             <span class="checkbox-group">
                 <input type="checkbox" id="auto_video">
-                <label for="auto_video">视频</label>
+                <label for="auto_video">视频题</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_luyin">
+                <label for="auto_luyin">无评分录音</label>
+            </span>
+            <span class="checkbox-group">
+                <input type="checkbox" id="auto_lytk">
+                <label for="auto_lytk">有评分录音</label>
             </span>
         </p>
         <hr>
@@ -601,15 +751,15 @@ console.log('🚀 脚本开始加载...');
             <span style="font-size: 14px; color: #4A5568; font-weight: 500;">每题耗时(秒)</span>
             <input type="text" id="set_delay" value="10" style="width: 100px;">
         </p>
-         <p style="display: flex; gap: 8px; margin: 16px 0;">
-            <button id="yun_save">💾 保存设置</button>
-            <button id="yun_reset">🔄 恢复默认</button>
+         <p style="display: flex; gap: 4px; margin: 4px 0;">
+            <button id="coral_save">💾 保存设置</button>
+            <button id="coral_reset">🔄 恢复默认</button>
         </p>
         <hr>
-        <h2 id="yun_status">状态栏</h2>
+        <h2 id="coral_status">状态栏</h2>
         <p style="display: flex; gap: 8px; margin: 16px 0;">
-            <button id="yun_doone">🎯 只做一题</button>
-            <button id="yun_start">🚀 开始答题</button>
+            <button id="coral_doone">🎯 只做一题</button>
+            <button id="coral_start">🚀 开始答题</button>
         </p>
     </div>
 `);
@@ -642,16 +792,66 @@ console.log('🚀 脚本开始加载...');
         $(document).mouseup(() => { draging = false; });
 
         // 关闭按钮点击事件
-        $('.coralPanel .close').click(function() {
-            $('.coralPanel').fadeOut(300, function() {
+        $('.coralPanel .close').click(function () {
+            $('.coralPanel').fadeOut(300, function () {
                 $(this).remove();
                 console.log('✅ 弹窗已关闭');
             });
         });
 
         console.log('🚀 窗口拖动功能已加载');
-        console.log('✅ 关闭按钮监听器已添加');
+
+        // 绑定按钮点击事件 - 确保在元素创建后绑定
+        bindButtonEvents();
+
+  
+
+        // 将重要信息显示到状态栏
+        if (window.logToStatusBar) {
+            window.logToStatusBar('🚀 窗口拖动功能已加载');
+            window.logToStatusBar('脚本加载完毕');
+        }
     }
 
+    /**
+     * 绑定按钮点击事件
+     */
+    function bindButtonEvents() {
+        console.log('🎯 开始绑定按钮事件...');
 
-})();
+        // 检查按钮是否存在
+        if ($('#coral_doone').length === 0) {
+            console.error('❌ 按钮元素未找到，无法绑定事件');
+            return;
+        }
+
+        // 先解绑可能存在的旧事件，避免重复绑定
+        $('#coral_doone').off('click');
+
+        //做一题按钮点击事件
+        $('#coral_doone').click(function () {
+            console.log('🎯 只做一题');
+
+            // 将重要信息显示到状态栏
+            if (window.logToStatusBar) {
+                window.logToStatusBar('🎯 只做一题');
+            }
+
+            // 运行main.js
+            
+            loadMainScript('https://gitee.com/vip_user/tsinghuaelt/raw/main/EachPart/main.js');
+
+        });
+    }
+
+    /**
+     * 加载外部代码
+     * @param {string} scriptUrl - 脚本URL地址
+     */
+    function loadMainScript(scriptUrl) {
+        // 动态加载脚本
+        const script = document.createElement('script');
+        script.src = scriptUrl;
+        document.head.appendChild(script);
+    }
+}

@@ -1,229 +1,194 @@
 /*
  * 清华社英语在线-工具函数库
- * 版本: 1.0.1
- * 最后更新: 2024年
+ * 版本: 1.0.2
+ * 最后更新: 2025年9月29日
  * 作者: FmCoral
  * 描述: 工具函数库
  */
 
-/**
- * 工具函数库 - 清华社英语自动答题
- */
+// 版本信息
+const UTILS_VERSION = '1.0.2';
 
-// 配置管理工具
-const ConfigManager = {
-    // 保存配置到本地存储
-    saveConfig: function(config) {
-        try {
-            localStorage.setItem('tsinghuaelt_config', JSON.stringify(config));
-            console.log('✅ 配置保存成功');
-            return true;
-        } catch (error) {
-            console.error('❌ 配置保存失败:', error);
-            return false;
-        }
-    },
+console.log('🚀 工具函数调用...');
 
-    // 从本地存储加载配置
-    loadConfig: function() {
-        try {
-            const configStr = localStorage.getItem('tsinghuaelt_config');
-            if (configStr) {
-                return JSON.parse(configStr);
-            }
-        } catch (error) {
-            console.error('❌ 配置加载失败:', error);
-        }
-        
-        // 默认配置
-        return {
-            delay: 10,
-            autoRetry: true,
-            questionTypes: {
-                tiankong: true,    // 填空题
-                duoxuan: true,     // 多选题
-                danxuan: true,     // 单选题
-                panduan: true,     // 判断题
-                pipei: true,       // 匹配题
-                paixu: true,       // 排序题
-                luoyin: true,      // 录音题
-                duanwen: true,     // 短文题
-                juzi: true         // 句子题
-            }
-        };
-    },
+// 辅助函数
+let vocabulary = ['fantastic', 'error', 'whatsoever', 'arouse', 'magnificent', 'remarkable', 'schoolwork', 'ease', 'devil', 'factor', 'outstanding', 'infinite', 'infinitely', 'accomplish', 'accomplished', 'mission', 'investigate', 'mysterious', 'analysis', 'peak', 'excellence', 'credit', 'responsibility', 'amount', 'entertain', 'alternative', 'irregular', 'grant', 'cease', 'concentration', 'adapt', 'weird', 'profit', 'alter', 'performance', 'echo', 'hallway', 'await', 'abortion', 'database', 'available', 'indecision', 'ban', 'predict', 'breakthrough', 'fate', 'host', 'pose', 'instance', 'expert', 'surgery', 'naval', 'aircraft', 'target', 'spoonful', 'navigation', 'numerous', 'fluent', 'mechanic', 'advertise', 'advertising', 'waken', 'enormous', 'enormously', 'oversleep', 'survey', 'best-selling', 'filmmaker', 'prosperous', 'involve'];
+let phrases = ['Yes, he is', 'No, he isn\'t', 'Yes', 'No'];
 
-    // 重置为默认配置
-    resetConfig: function() {
-        const defaultConfig = {
-            delay: 10,
-            autoRetry: true,
-            questionTypes: {
-                tiankong: true, duoxuan: true, danxuan: true, panduan: true,
-                pipei: true, paixu: true, luoyin: true, duanwen: true, juzi: true
-            }
-        };
-        this.saveConfig(defaultConfig);
-        return defaultConfig;
+// 获取随机单词
+let getRanWord = () => { return vocabulary[parseInt(Math.random() * vocabulary.length)]; }
+
+// 获取随机短语
+let getRanPhrase = () => { return phrases[parseInt(Math.random() * phrases.length)]; }
+
+// 异步等待函数
+let sleep = (ms) => { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+// 点击提交按钮
+let click_btn = () => { $('.wy-course-bottom .wy-course-btn-right .wy-btn').click(); }
+
+// 配置常量
+const submitDelay = 3000;       // Submit 之后的等待时间
+const pageNextDelay = 5000;     // 换页 之后的等待时间
+const inputDelay = 500;         // 输入 之后的等待时间
+
+//填空题自动输入
+function input_in(e, txt) {
+    if (e.type == 'textarea') {
+        e.value = txt;
+    } else {
+        e.innerText = txt;
     }
-};
 
-// 延迟函数
-const Delay = {
-    // 随机延迟（避免被检测）
-    randomDelay: function(min = 8, max = 15) {
-        const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-        console.log(`⏰ 延迟 ${delay} 秒`);
-        return new Promise(resolve => setTimeout(resolve, delay * 1000));
-    },
+    let changeEvent = null;
+    changeEvent = document.createEvent("HTMLEvents");
+    changeEvent = new Event("input", { bubbles: true, cancelable: true });
+    e.dispatchEvent(changeEvent);
 
-    // 固定延迟
-    fixedDelay: function(seconds) {
-        console.log(`⏰ 固定延迟 ${seconds} 秒`);
-        return new Promise(resolve => setTimeout(resolve, seconds * 1000));
-    }
-};
+    changeEvent = document.createEvent("HTMLEvents");
+    changeEvent = new Event("keyup", { bubbles: true, cancelable: true });
+    e.dispatchEvent(changeEvent);
 
-// DOM操作工具
-const DOMUtils = {
-    // 安全地获取元素
-    $: function(selector) {
-        return document.querySelector(selector);
-    },
-
-    // 安全地获取所有匹配元素
-    $$: function(selector) {
-        return document.querySelectorAll(selector);
-    },
-
-    // 创建元素
-    createElement: function(tag, className, innerHTML) {
-        const element = document.createElement(tag);
-        if (className) element.className = className;
-        if (innerHTML) element.innerHTML = innerHTML;
-        return element;
-    },
-
-    // 显示消息
-    showMessage: function(message, type = 'info') {
-        const messageDiv = this.createElement('div', `message message-${type}`);
-        messageDiv.textContent = message;
-        messageDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 16px;
-            background: ${type === 'error' ? '#f56565' : type === 'success' ? '#48bb78' : '#4299e1'};
-            color: white;
-            border-radius: 8px;
-            z-index: 10000;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        `;
-        
-        document.body.appendChild(messageDiv);
-        
-        // 3秒后自动消失
-        setTimeout(() => {
-            if (messageDiv.parentNode) {
-                messageDiv.parentNode.removeChild(messageDiv);
-            }
-        }, 3000);
-    }
-};
+    changeEvent = document.createEvent("HTMLEvents");
+    changeEvent = new Event("change", { bubbles: true, cancelable: true });
+    e.dispatchEvent(changeEvent);
+}
 
 // 题型检测工具
-const QuestionDetector = {
-    // 检测当前页面题型
-    detectQuestionType: function() {
-        const url = window.location.href;
-        const pageTitle = document.title;
-        
-        // 根据URL和页面内容判断题型
-        if (url.includes('tiankong') || pageTitle.includes('填空')) {
-            return 'tiankong';
-        } else if (url.includes('duoxuan') || pageTitle.includes('多选')) {
-            return 'duoxuan';
-        } else if (url.includes('danxuan') || pageTitle.includes('单选')) {
-            return 'danxuan';
-        } else if (url.includes('panduan') || pageTitle.includes('判断')) {
-            return 'panduan';
-        } else if (url.includes('pipei') || pageTitle.includes('匹配')) {
-            return 'pipei';
-        } else if (url.includes('paixu') || pageTitle.includes('排序')) {
-            return 'paixu';
-        } else if (url.includes('luoyin') || pageTitle.includes('录音')) {
-            return 'luoyin';
-        } else if (url.includes('duanwen') || pageTitle.includes('短文')) {
-            return 'duanwen';
-        } else if (url.includes('juzi') || pageTitle.includes('句子')) {
-            return 'juzi';
-        }
-        
-        return 'unknown';
-    },
 
-    // 检查是否在答题页面
-    isQuestionPage: function() {
-        return this.detectQuestionType() !== 'unknown';
+// 检测当前页面题型
+function detectQuestionType() {
+    console.log('[+] 开始检测当前题型...');
+    
+    // 填空题检测
+    if ($('.lib-fill-blank-do-input-left').length > 0) {
+        return '填空题';
     }
-};
-
-// 答题逻辑工具
-const AnswerUtils = {
-    // 填空题答题逻辑
-    answerTiankong: function() {
-        console.log('🔤 正在处理填空题...');
-        // 这里实现填空题的自动答题逻辑
-        return true;
-    },
-
-    // 单选题答题逻辑
-    answerDanxuan: function() {
-        console.log('🔘 正在处理单选题...');
-        // 这里实现单选题的自动答题逻辑
-        return true;
-    },
-
-    // 多选题答题逻辑
-    answerDuoxuan: function() {
-        console.log('☑️ 正在处理多选题...');
-        // 这里实现多选题的自动答题逻辑
-        return true;
-    },
-
-    // 判断题答题逻辑
-    answerPanduan: function() {
-        console.log('✅ 正在处理判断题...');
-        // 这里实现判断题的自动答题逻辑
-        return true;
-    },
-
-    // 根据题型调用对应的答题函数
-    answerQuestion: function(questionType) {
-        switch (questionType) {
-            case 'tiankong':
-                return this.answerTiankong();
-            case 'danxuan':
-                return this.answerDanxuan();
-            case 'duoxuan':
-                return this.answerDuoxuan();
-            case 'panduan':
-                return this.answerPanduan();
-            default:
-                console.warn('⚠️ 未知题型:', questionType);
-                return false;
-        }
+    
+    // 单选题检测
+    if ($('.lib-single-item-img').length > 0) {
+        return '单选题';
     }
-};
+    
+    // 多选题检测
+    if ($('.lib-single-item-img img[src="assets/exercise/no-choices.png"]').length > 0) {
+        return '多选题';
+    }
+    
+    // 判断题检测
+    if ($('.lib-judge-radio.lib-cursor.ng-star-inserted').length > 0) {
+        return '判断题';
+    }
+    
+    // 拖拽题检测
+    if ($('.lib-drag-box').length > 0) {
+        return '拖拽题';
+    }
+    
+    // 文本填空检测
+    if ($('.lib-textarea-container, .img-blank-answer').length > 0) {
+        return '文本填空';
+    }
+    
+    // 视频题检测
+    if ($('#J_prismPlayer').length > 0) {
+        return '视频题';
+    }
+    
+    // 录音题检测
+    if ($('img[title="录音"]').length > 0) {
+        // 检测是否有原音按钮
+        const hasSourceAudio = $('img[src*="source"], img[src*="参考"], img[src*="原音"], img[title*="source"], img[title*="参考"], img[title*="原音"]').length > 0;
+        return hasSourceAudio ? '有评分录音' : '无评分录音';
+    }
+    
+    // 角色扮演题检测
+    if ($('.lib-role-select-item').length > 0) {
+        return '角色扮演题';
+    }
+    
+    return '未知题型';
+}
+
+// 检查是否在答题页面
+function isInAnswerPage() {
+    // 检查是否有提交按钮
+    const hasSubmitButton = $('.wy-course-bottom .wy-course-btn-right .wy-btn').text().indexOf('Submit') != -1;
+    
+    // 检查是否有任何题型元素
+    const hasQuestionElements = (
+        $('.lib-fill-blank-do-input-left').length > 0 ||
+        $('.lib-single-item-img').length > 0 ||
+        $('.lib-judge-radio').length > 0 ||
+        $('.lib-drag-box').length > 0 ||
+        $('.lib-textarea-container').length > 0 ||
+        $('#J_prismPlayer').length > 0 ||
+        $('img[title="录音"]').length > 0
+    );
+    
+    return hasSubmitButton || hasQuestionElements;
+}
+
+
+
+// 填空题答题逻辑
+async function doTianKone(inputDelay = 500, submitDelay = 3000) {
+    // 先填写随机单词，获得答案
+    let inputs = $('.lib-fill-blank-do-input-left');
+    $.each(inputs, function (i, item) {
+        input_in(item, getRanWord());
+    });
+
+    await sleep(inputDelay);
+    click_btn(); // Submit
+    await sleep(submitDelay);
+
+    let answer = [], anyAnswer = false;
+    $('.lib-edit-score span[data-type="1"]').each((i, item) => {
+        if (item.innerText.toLowerCase().indexOf('vary') != -1) {
+            // 任意填空
+            anyAnswer = true;
+            return false;
+        }
+        answer.push(item.innerText)
+    });
+
+    if (anyAnswer) {
+        return;
+    }
+
+    click_btn(); // Retry
+    await sleep(submitDelay);
+
+    // 提交正确答案
+    inputs = $('.lib-fill-blank-do-input-left');
+    $(inputs).each((i, item) => {
+        input_in(item, answer[i]);
+    });
+
+    await sleep(inputDelay);
+}
+
+// 单选题答题逻辑
+
+
+// 多选题答题逻辑
+
+// 判断题答题逻辑
+
+// 根据题型调用对应的答题函数
+
 
 // 导出工具函数
 window.TsinghuaELTUtils = {
-    ConfigManager,
-    Delay,
-    DOMUtils,
-    QuestionDetector,
-    AnswerUtils
+    getRanWord,
+    getRanPhrase,
+    sleep,
+    click_btn,
+    input_in,
+    doTianKone,
+    detectQuestionType,
+    isInAnswerPage
 };
 
 // 工具函数库 - 只包含函数定义
