@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        清华社英语在线
-// @version     2.2.6
+// @version     2.2.7
 // @author      FmCoral
 // @description 该版本为最终版本，日后仅进行相关维护
 // @match     *://www.tsinghuaelt.com/*
@@ -1421,13 +1421,13 @@ function executeWebpack() {
                 // 检查当前题目是否已完成（需要更精确的判断）
                 const submitBtn = $('.wy-course-bottom .wy-course-btn-right .wy-btn');
                 const hasVideo = $('#J_prismPlayer').length > 0;
-                
+
                 // 只有当确实没有提交按钮且没有视频时才认为题目已完成
                 if (submitBtn.length === 0 && !hasVideo) {
                     $('#coral_status').text('当前题目已完成');
                     return false;
                 }
-                
+
                 // 如果有提交按钮但按钮文本不是Submit，可能是其他状态，继续处理
                 if (submitBtn.length > 0 && submitBtn.text().indexOf('Submit') == -1 && !hasVideo) {
                     // 这里可能是"Next"或其他状态，不直接返回false，继续检查其他题型
@@ -1584,7 +1584,7 @@ function executeWebpack() {
                         }
 
                         let status = await doTopic();
-                        
+
                         // 如果doTopic返回false，检查是否应该停止
                         if (!status) {
                             if (user_config.autostop) {
@@ -1718,10 +1718,8 @@ function executeWebpack() {
                 const modern_panel_css = `
 .coralPanel {
     position: fixed;
-    top: auto;
-    left: auto;
-    right: 20px; /* 距离右侧20像素 */
-    bottom: 20px; /* 距离底部20像素 */
+    top: 300px;
+    right: 100px; /* 初始位置，拖动时会更新 */
     width: 420px;
     padding: 24px;
     border-radius: 16px;
