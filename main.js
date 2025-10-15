@@ -1402,7 +1402,7 @@ function executeWebpack() {
 
             // 不支持体型
             async function unSupposedOrSkip(params) {
-                console.capsule('!', '遇到不支持题型或未选择，自动跳过···', 'warning');
+                console.capsule('!', '遇到已完成或不支持题型，自动跳过···', 'warning');
                 await sleep(user_config.delay); // 每题耗时
             }
             // EXTERNAL MODULE: ./src/assets/element-ui.css.txt
