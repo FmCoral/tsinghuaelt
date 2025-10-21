@@ -174,7 +174,7 @@ let user_config = {
    - 网络延迟导致的答题失败、题目结构变化导致的识别错误等
 
 3. **其他问题等**
-   - 所有已发现的问题我将放在https://github.com/FmCoral/tsinghuaelt/issues.md
+   - 所有已发现的问题我将放在https://github.com/FmCoral/tsinghuaelt/blob/main/issues.md 文档里
 
 ### 注意事项
 
